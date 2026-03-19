@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>배식 정보</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-size: 18px;
+  background: #f5f5f5;
+  color: #333;
+  overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* === 헤더 === */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #1a1a2e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.header__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header__timestamp {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.header__refresh {
+  background: none;
+  border: 2px solid rgba(255,255,255,0.4);
+  color: #fff;
+  font-size: 1.3rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.header__refresh:active {
+  background: rgba(255,255,255,0.2);
+}
+
+.header__refresh.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* === 탭바 === */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  border-bottom: 2px solid #e0e0e0;
+  position: sticky;
+  top: 72px;
+  z-index: 99;
+}
+
+.tab-bar__btn {
+  flex: 1;
+  min-height: 56px;
+  border: none;
+  background: none;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.tab-bar__btn.active {
+  color: #1a1a2e;
+  border-bottom-color: #1a1a2e;
+}
+
+.tab-bar__btn:active {
+  background: #f0f0f0;
+}
+
+/* === 탭 콘텐츠 === */
+.tab-content {
+  padding: 12px;
+  min-height: calc(100vh - 130px);
+}
+
+/* === 식이형태 섹션 헤더 === */
+.diet-section {
+  margin-bottom: 20px;
+}
+
+.diet-section__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.diet-section__count {
+  font-weight: 400;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+/* === 카드 그리드 === */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+/* === 이름 카드 === */
+.name-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border-left: 5px solid #ccc;
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.name-card:active {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+
+.name-card__apron {
+  font-size: 1.2rem;
+}
+
+/* === 특이사항 카드 (반찬특이사항 탭) === */
+.note-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border-left: 5px solid #ffc107;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.note-card:active {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+
+.note-card__name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.note-card__text {
+  background: #fff9c4;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #5d4037;
+}
+
+/* === 앞치마 리스트 카드 === */
+.apron-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border-left: 5px solid #e91e63;
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.apron-card:active {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+
+/* === 빈 상태 === */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state__icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.empty-state__text {
+  font-size: 1.1rem;
+}
+
+/* === 로딩 === */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.loading-overlay.hidden { display: none; }
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #e0e0e0;
+  border-top-color: #1a1a2e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* === 토스트 === */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #333;
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  z-index: 300;
+  transition: transform 0.3s ease;
+  max-width: 90%;
+  text-align: center;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* === 설정 안내 === */
+.setup-guide {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
+
+.setup-guide h2 {
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+}
+
+.setup-guide ol {
+  padding-left: 20px;
+  line-height: 2;
+}
+
+.setup-guide code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* === 수정 모달 === */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 400;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-backdrop.hidden { display: none; }
+
+.modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 500px;
+  padding: 24px 20px 32px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal__name {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.modal__close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal__field {
+  margin-bottom: 18px;
+}
+
+.modal__label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.modal__input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal__input:focus {
+  border-color: #1a1a2e;
+}
+
+.modal__toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8f8f8;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.modal__toggle-switch {
+  width: 52px;
+  height: 30px;
+  background: #ccc;
+  border-radius: 15px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.modal__toggle-switch.on {
+  background: #e91e63;
+}
+
+.modal__toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+
+.modal__toggle-switch.on::after {
+  transform: translateX(22px);
+}
+
+.modal__toggle-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.modal__btn {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 54px;
+}
+
+.modal__btn--cancel {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.modal__btn--save {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.modal__btn--save:disabled {
+  opacity: 0.5;
+}
+
+.modal__btn--save:active:not(:disabled) {
+  background: #2d2d4e;
+}
+
+/* === 등록 플로팅 버튼 === */
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 2rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  transition: transform 0.15s;
+}
+
+.fab:active {
+  transform: scale(0.92);
+}
+
+/* === 반응형 === */
+@media (min-width: 600px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+  body { font-size: 19px; }
+  .modal { border-radius: 20px; margin-bottom: 20px; }
+}
+
+@media (min-width: 900px) {
+  .card-grid { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="header__title">배식 정보</span>
+  <div class="header__right">
+    <span class="header__timestamp" id="timestamp"></span>
+    <button class="header__refresh" id="refreshBtn" aria-label="새로고침">🔄</button>
+  </div>
+</header>
+
+<nav class="tab-bar" role="tablist">
+  <button class="tab-bar__btn active" role="tab" data-tab="diet" aria-selected="true">식이형태</button>
+  <button class="tab-bar__btn" role="tab" data-tab="apron" aria-selected="false">앞치마필요</button>
+  <button class="tab-bar__btn" role="tab" data-tab="notes" aria-selected="false">반찬특이사항</button>
+</nav>
+
+<main class="tab-content" id="tabContent"></main>
+
+<div class="loading-overlay hidden" id="loading">
+  <div class="spinner"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 등록 플로팅 버튼 -->
+<button class="fab" id="fabBtn" aria-label="어르신 등록">＋</button>
+
+<!-- 등록 모달 -->
+<div class="modal-backdrop hidden" id="addModalBackdrop">
+  <div class="modal" id="addModal">
+    <div class="modal__header">
+      <span class="modal__name">새 어르신 등록</span>
+      <button class="modal__close" id="addModalClose">✕</button>
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">이름 <span style="color:#e91e63">*</span></label>
+      <input class="modal__input" id="addName" type="text" placeholder="이름 입력">
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">앞치마 필요</label>
+      <div class="modal__toggle" id="addApronToggle">
+        <div class="modal__toggle-switch" id="addApronSwitch"></div>
+        <span class="modal__toggle-text" id="addApronText">필요 없음</span>
+      </div>
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">식이형태</label>
+      <input class="modal__input" id="addDiet" type="text" placeholder="예: 다진식, 연식, 경관식">
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">반찬 특이사항</label>
+      <input class="modal__input" id="addNotes" type="text" placeholder="예: 김치많이">
+    </div>
+
+    <div class="modal__actions">
+      <button class="modal__btn modal__btn--cancel" id="addModalCancel">취소</button>
+      <button class="modal__btn modal__btn--save" id="addModalSave">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-backdrop hidden" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <div class="modal__header">
+      <span class="modal__name" id="modalName"></span>
+      <button class="modal__close" id="modalClose">✕</button>
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">앞치마 필요</label>
+      <div class="modal__toggle" id="apronToggle">
+        <div class="modal__toggle-switch" id="apronSwitch"></div>
+        <span class="modal__toggle-text" id="apronText">필요 없음</span>
+      </div>
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">먼저제공</label>
+      <div class="modal__toggle" id="firstToggle">
+        <div class="modal__toggle-switch" id="firstSwitch"></div>
+        <span class="modal__toggle-text" id="firstText">아니오</span>
+      </div>
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">식이형태</label>
+      <input class="modal__input" id="modalDiet" type="text" placeholder="예: 다진식, 연식, 경관식">
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">식사량</label>
+      <input class="modal__input" id="modalAmount" type="text" placeholder="예: 소, 중, 대">
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">반찬 특이사항</label>
+      <input class="modal__input" id="modalNotes" type="text" placeholder="예: 김치많이, 국 건더기 제거">
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">식사보조</label>
+      <div class="modal__toggle" id="assistToggle">
+        <div class="modal__toggle-switch" id="assistSwitch"></div>
+        <span class="modal__toggle-text" id="assistText">필요 없음</span>
+      </div>
+    </div>
+
+    <div class="modal__field">
+      <label class="modal__label">기타</label>
+      <input class="modal__input" id="modalEtc" type="text" placeholder="예: 된밥, 면많이">
+    </div>
+
+    <div class="modal__actions">
+      <button class="modal__btn modal__btn--cancel" id="modalCancel">취소</button>
+      <button class="modal__btn modal__btn--save" id="modalSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// ★ 설정 ★
+// SHEET_CSV_URL: 읽기용 (웹에 게시 → CSV)
+// APPS_SCRIPT_URL: 쓰기용 (Google Apps Script 웹 앱 URL)
+// ============================================================
+const CONFIG = {
+  SHEET_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSS_51T7o9TEy1TqIklpuY8Pty4WVh7RFeWne0JSQp3HjZ0J0ChGAhm9868do4NJQ/pub?gid=612896529&single=true&output=csv',
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwBaOMtY_gyyEFS0AW_vHFGe1LTI8SJ5oTQt-ZSJe_l3G10LblKnxZHpejBW6EatYR42g/exec',
+  AUTO_REFRESH_MS: 60000,
+  DIET_COLORS: {
+    '일반식': { bg: '#d4edda', badge: '#28a745' },
+    '다진식': { bg: '#fff3cd', badge: '#ffc107' },
+    '연식':   { bg: '#cce5ff', badge: '#007bff' },
+    '경관식': { bg: '#f8d7da', badge: '#dc3545' },
+  },
+  DEFAULT_COLOR: { bg: '#e2e3e5', badge: '#6c757d' },
+  COL: { NAME: '이름', APRON: '앞치마필요', FIRST: '먼저제공', AMOUNT: '식사량', DIET: '식이형태', SIDE_NOTES: '반찬특이사항', ASSIST: '식사보조', ETC: '기타' },
+};
+
+// ============================================================
+// CSV 파서 (RFC 4180)
+// ============================================================
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuote = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (inQuote) {
+      if (ch === '"' && next === '"') { field += '"'; i++; }
+      else if (ch === '"') { inQuote = false; }
+      else { field += ch; }
+    } else {
+      if (ch === '"') { inQuote = true; }
+      else if (ch === ',') { row.push(field.trim()); field = ''; }
+      else if (ch === '\r' && next === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; i++; }
+      else if (ch === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+      else { field += ch; }
+    }
+  }
+  if (field || row.length > 0) { row.push(field.trim()); rows.push(row); }
+  if (rows.length < 2) return [];
+
+  const headers = rows[0];
+  const data = [];
+  for (let r = 1; r < rows.length; r++) {
+    const obj = {};
+    for (let c = 0; c < headers.length; c++) {
+      obj[headers[c]] = (rows[r][c] || '').trim();
+    }
+    if (obj[CONFIG.COL.NAME]) data.push(obj);
+  }
+  return data;
+}
+
+// ============================================================
+// 데이터 서비스
+// ============================================================
+let cachedData = [];
+
+function isTruthy(val) {
+  return ['y', '예', 'o', '1', 'true'].includes((val || '').toLowerCase());
+}
+
+function getResidentsByDiet(data) {
+  const groups = new Map();
+  for (const r of data) {
+    const diet = r[CONFIG.COL.DIET];
+    if (!diet) continue;
+    if (!groups.has(diet)) groups.set(diet, []);
+    groups.get(diet).push(r);
+  }
+  return groups;
+}
+
+function getApronResidents(data) {
+  return data.filter(r => isTruthy(r[CONFIG.COL.APRON]));
+}
+
+function getSideNoteResidents(data) {
+  return data.filter(r => r[CONFIG.COL.SIDE_NOTES]);
+}
+
+// ============================================================
+// 렌더러
+// ============================================================
+function getDietColor(diet) {
+  return CONFIG.DIET_COLORS[diet] || CONFIG.DEFAULT_COLOR;
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function cardClick(name) {
+  return `onclick="openModal('${escapeHTML(name).replace(/'/g, "\\'")}')"`;
+}
+
+function renderDietTab(data) {
+  const groups = getResidentsByDiet(data);
+  if (groups.size === 0) {
+    return '<div class="empty-state"><div class="empty-state__icon">🍽</div><div class="empty-state__text">식이형태 데이터가 없습니다</div></div>';
+  }
+  let html = '';
+  for (const [diet, residents] of groups) {
+    const color = getDietColor(diet);
+    html += '<div class="diet-section">';
+    html += `<div class="diet-section__header" style="background:${color.badge}">`;
+    html += `${escapeHTML(diet)} <span class="diet-section__count">(${residents.length}명)</span></div>`;
+    html += '<div class="card-grid">';
+    for (const r of residents) {
+      const name = r[CONFIG.COL.NAME];
+      const apron = isTruthy(r[CONFIG.COL.APRON]) ? '<span class="name-card__apron">🧥</span>' : '';
+      html += `<div class="name-card" style="border-left-color:${color.badge}" ${cardClick(name)}>${escapeHTML(name)}${apron}</div>`;
+    }
+    html += '</div></div>';
+  }
+  return html;
+}
+
+function renderApronTab(data) {
+  const list = getApronResidents(data);
+  if (list.length === 0) {
+    return '<div class="empty-state"><div class="empty-state__icon">🧥</div><div class="empty-state__text">앞치마가 필요한 분이 없습니다</div></div>';
+  }
+  let html = `<div style="padding:8px 16px;font-weight:700;font-size:1.1rem;color:#666;margin-bottom:4px">총 ${list.length}명</div>`;
+  html += '<div class="card-grid">';
+  for (const r of list) {
+    const name = r[CONFIG.COL.NAME];
+    html += `<div class="apron-card" ${cardClick(name)}>🧥 ${escapeHTML(name)}</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderNotesTab(data) {
+  const list = getSideNoteResidents(data);
+  if (list.length === 0) {
+    return '<div class="empty-state"><div class="empty-state__icon">📝</div><div class="empty-state__text">반찬 특이사항이 없습니다</div></div>';
+  }
+  let html = `<div style="padding:8px 16px;font-weight:700;font-size:1.1rem;color:#666;margin-bottom:4px">총 ${list.length}명</div>`;
+  for (const r of list) {
+    const name = r[CONFIG.COL.NAME];
+    html += `<div class="note-card" ${cardClick(name)}>`;
+    html += `<div class="note-card__name">${escapeHTML(name)}</div>`;
+    html += `<div class="note-card__text">${escapeHTML(r[CONFIG.COL.SIDE_NOTES])}</div>`;
+    html += '</div>';
+  }
+  return html;
+}
+
+// ============================================================
+// 탭 컨트롤러
+// ============================================================
+let activeTab = 'diet';
+const renderers = { diet: renderDietTab, apron: renderApronTab, notes: renderNotesTab };
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-bar__btn').forEach(btn => {
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive);
+  });
+  render();
+}
+
+function render() {
+  const content = document.getElementById('tabContent');
+  const scrollTop = content.scrollTop;
+  content.innerHTML = renderers[activeTab](cachedData);
+  content.scrollTop = scrollTop;
+}
+
+// ============================================================
+// 수정 모달
+// ============================================================
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalName = document.getElementById('modalName');
+const modalDiet = document.getElementById('modalDiet');
+const modalAmount = document.getElementById('modalAmount');
+const modalNotes = document.getElementById('modalNotes');
+const modalEtc = document.getElementById('modalEtc');
+const apronSwitch = document.getElementById('apronSwitch');
+const apronText = document.getElementById('apronText');
+const firstSwitch = document.getElementById('firstSwitch');
+const firstText = document.getElementById('firstText');
+const assistSwitch = document.getElementById('assistSwitch');
+const assistText = document.getElementById('assistText');
+const modalSave = document.getElementById('modalSave');
+
+let editingResident = null;
+let apronOn = false;
+let firstOn = false;
+let assistOn = false;
+
+function openModal(name) {
+  const resident = cachedData.find(r => r[CONFIG.COL.NAME] === name);
+  if (!resident) return;
+  editingResident = resident;
+
+  modalName.textContent = name;
+  modalDiet.value = resident[CONFIG.COL.DIET] || '';
+  modalAmount.value = resident[CONFIG.COL.AMOUNT] || '';
+  modalNotes.value = resident[CONFIG.COL.SIDE_NOTES] || '';
+  modalEtc.value = resident[CONFIG.COL.ETC] || '';
+
+  apronOn = isTruthy(resident[CONFIG.COL.APRON]);
+  updateToggle(apronSwitch, apronText, apronOn, '필요', '필요 없음');
+
+  firstOn = isTruthy(resident[CONFIG.COL.FIRST]);
+  updateToggle(firstSwitch, firstText, firstOn, '예', '아니오');
+
+  assistOn = isTruthy(resident[CONFIG.COL.ASSIST]);
+  updateToggle(assistSwitch, assistText, assistOn, '필요', '필요 없음');
+
+  modalSave.disabled = false;
+  modalBackdrop.classList.remove('hidden');
+}
+// openModal을 전역에서 접근 가능하게
+window.openModal = openModal;
+
+function closeModal() {
+  modalBackdrop.classList.add('hidden');
+  editingResident = null;
+}
+
+function updateToggle(switchEl, textEl, isOn, onLabel, offLabel) {
+  switchEl.classList.toggle('on', isOn);
+  textEl.textContent = isOn ? onLabel : offLabel;
+}
+
+document.getElementById('apronToggle').addEventListener('click', () => {
+  apronOn = !apronOn;
+  updateToggle(apronSwitch, apronText, apronOn, '필요', '필요 없음');
+});
+
+document.getElementById('firstToggle').addEventListener('click', () => {
+  firstOn = !firstOn;
+  updateToggle(firstSwitch, firstText, firstOn, '예', '아니오');
+});
+
+document.getElementById('assistToggle').addEventListener('click', () => {
+  assistOn = !assistOn;
+  updateToggle(assistSwitch, assistText, assistOn, '필요', '필요 없음');
+});
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', (e) => {
+  if (e.target === modalBackdrop) closeModal();
+});
+
+// 저장
+modalSave.addEventListener('click', async () => {
+  if (!editingResident) return;
+  modalSave.disabled = true;
+  modalSave.textContent = '저장 중...';
+
+  const updatedData = {
+    [CONFIG.COL.NAME]: editingResident[CONFIG.COL.NAME],
+    [CONFIG.COL.APRON]: apronOn ? 'Y' : '',
+    [CONFIG.COL.FIRST]: firstOn ? 'Y' : '',
+    [CONFIG.COL.AMOUNT]: modalAmount.value.trim(),
+    [CONFIG.COL.DIET]: modalDiet.value.trim(),
+    [CONFIG.COL.SIDE_NOTES]: modalNotes.value.trim(),
+    [CONFIG.COL.ASSIST]: assistOn ? 'Y' : '',
+    [CONFIG.COL.ETC]: modalEtc.value.trim(),
+  };
+
+  // 로컬 캐시 즉시 업데이트
+  Object.assign(editingResident, updatedData);
+  render();
+
+  if (CONFIG.APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    showToast('로컬만 업데이트됨 — Apps Script URL을 설정하면 시트에도 저장됩니다');
+    closeModal();
+    modalSave.textContent = '저장';
+    return;
+  }
+
+  // 세 탭 모두 표시 안 되면 삭제
+  const shouldDelete =
+    !updatedData[CONFIG.COL.DIET] &&
+    updatedData[CONFIG.COL.APRON] !== 'Y' &&
+    !updatedData[CONFIG.COL.SIDE_NOTES];
+
+  try {
+    if (shouldDelete) {
+      const name = updatedData[CONFIG.COL.NAME];
+      const params = new URLSearchParams({ action: 'delete', [CONFIG.COL.NAME]: name }).toString();
+      fetch(CONFIG.APPS_SCRIPT_URL + '?' + params, { mode: 'no-cors' }).catch(() => {});
+      cachedData = cachedData.filter(r => r[CONFIG.COL.NAME] !== name);
+      render();
+      showToast(`${name} 삭제됨`);
+    } else {
+      const params = new URLSearchParams(updatedData).toString();
+      await fetch(CONFIG.APPS_SCRIPT_URL + '?' + params, { mode: 'no-cors' });
+      showToast('저장 완료');
+    }
+  } catch (e) {
+    showToast('시트 저장 실패 — 로컬만 업데이트됨');
+  }
+
+  closeModal();
+  modalSave.textContent = '저장';
+});
+
+// ============================================================
+// 앱
+// ============================================================
+const loading = document.getElementById('loading');
+const toast = document.getElementById('toast');
+const refreshBtn = document.getElementById('refreshBtn');
+const timestamp = document.getElementById('timestamp');
+let refreshDebounce = false;
+
+function showToast(msg, duration = 4000) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function updateTimestamp() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  timestamp.textContent = `${h}:${m} 갱신`;
+}
+
+function showSetupGuide() {
+  document.getElementById('tabContent').innerHTML = `
+    <div class="setup-guide">
+      <h2>Google Sheets URL 설정이 필요합니다</h2>
+      <ol>
+        <li>Google Sheets에서 <b>파일 → 공유 → 웹에 게시</b></li>
+        <li>형식을 <b>CSV</b>로 선택 후 게시</li>
+        <li>생성된 URL을 복사</li>
+        <li><code>index.html</code> 파일을 열어 <code>SHEET_CSV_URL</code>에 붙여넣기</li>
+      </ol>
+    </div>`;
+}
+
+async function fetchData(showLoadingFlag = true) {
+  if (showLoadingFlag && cachedData.length === 0) {
+    loading.classList.remove('hidden');
+  }
+
+  refreshBtn.classList.add('spinning');
+
+  try {
+    const res = await fetch(CONFIG.SHEET_CSV_URL + '&t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    cachedData = parseCSV(text);
+    updateTimestamp();
+    render();
+  } catch (e) {
+    if (cachedData.length > 0) {
+      showToast('데이터 갱신 실패 — 마지막 데이터를 표시합니다');
+    } else {
+      showToast('데이터를 불러올 수 없습니다.');
+    }
+  } finally {
+    loading.classList.add('hidden');
+    refreshBtn.classList.remove('spinning');
+  }
+}
+
+// ============================================================
+// 등록 모달
+// ============================================================
+const addModalBackdrop = document.getElementById('addModalBackdrop');
+const addModalSave = document.getElementById('addModalSave');
+let addApronOn = false;
+
+function openAddModal() {
+  document.getElementById('addName').value = '';
+  document.getElementById('addDiet').value = '';
+  document.getElementById('addNotes').value = '';
+  addApronOn = false;
+  updateToggle(document.getElementById('addApronSwitch'), document.getElementById('addApronText'), false, '필요', '필요 없음');
+  addModalSave.disabled = false;
+  addModalSave.textContent = '등록';
+  addModalBackdrop.classList.remove('hidden');
+  document.getElementById('addName').focus();
+}
+
+function closeAddModal() { addModalBackdrop.classList.add('hidden'); }
+
+document.getElementById('addApronToggle').addEventListener('click', () => {
+  addApronOn = !addApronOn;
+  updateToggle(document.getElementById('addApronSwitch'), document.getElementById('addApronText'), addApronOn, '필요', '필요 없음');
+});
+
+document.getElementById('addModalClose').addEventListener('click', closeAddModal);
+document.getElementById('addModalCancel').addEventListener('click', closeAddModal);
+addModalBackdrop.addEventListener('click', e => { if (e.target === addModalBackdrop) closeAddModal(); });
+document.getElementById('fabBtn').addEventListener('click', openAddModal);
+
+addModalSave.addEventListener('click', async () => {
+  const name = document.getElementById('addName').value.trim();
+  if (!name) { document.getElementById('addName').focus(); showToast('이름을 입력해주세요'); return; }
+  addModalSave.disabled = true;
+  addModalSave.textContent = '등록 중...';
+
+  const newResident = {
+    [CONFIG.COL.NAME]: name,
+    [CONFIG.COL.APRON]: addApronOn ? 'Y' : '',
+    [CONFIG.COL.DIET]: document.getElementById('addDiet').value.trim(),
+    [CONFIG.COL.SIDE_NOTES]: document.getElementById('addNotes').value.trim(),
+  };
+
+  // 웹앱에 즉시 반영
+  cachedData.push(newResident);
+  render();
+
+  // 시트에 저장 (백그라운드)
+  const params = new URLSearchParams({ action: 'add', ...newResident }).toString();
+  fetch(CONFIG.APPS_SCRIPT_URL + '?' + params, { mode: 'no-cors' }).catch(() => {});
+
+  showToast(`${name} 등록 완료`);
+  closeAddModal();
+  addModalSave.disabled = false;
+  addModalSave.textContent = '등록';
+});
+
+// 탭 이벤트
+document.querySelectorAll('.tab-bar__btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// 새로고침 버튼 — Apps Script에서 실시간 데이터 가져오기 (디바운스 2초)
+refreshBtn.addEventListener('click', async () => {
+  if (refreshDebounce) return;
+  refreshDebounce = true;
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=read');
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      cachedData = data;
+      render();
+      showToast('최신 데이터 반영 완료');
+    } else {
+      showToast('데이터를 불러오지 못했습니다');
+    }
+  } catch (err) {
+    // CORS 실패 시 기존 CSV 방식으로 폴백
+    fetchData(false);
+    showToast('CSV로 새로고침');
+  }
+  setTimeout(() => { refreshDebounce = false; }, 2000);
+});
+
+// 초기화
+fetchData();
+
+// 자동 새로고침
+if (CONFIG.AUTO_REFRESH_MS > 0) {
+  setInterval(() => fetchData(false), CONFIG.AUTO_REFRESH_MS);
+}
+</script>
+</body>
+</html>
