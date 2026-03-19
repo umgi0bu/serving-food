@@ -449,6 +449,10 @@ body {
   min-height: 54px;
 }
 
+.modal__btn--delete {
+  background: #ff4444;
+  color: #fff;
+}
 .modal__btn--cancel {
   background: #f0f0f0;
   color: #666;
@@ -586,21 +590,8 @@ body {
     </div>
 
     <div class="modal__field">
-      <label class="modal__label">먼저제공</label>
-      <div class="modal__toggle" id="firstToggle">
-        <div class="modal__toggle-switch" id="firstSwitch"></div>
-        <span class="modal__toggle-text" id="firstText">아니오</span>
-      </div>
-    </div>
-
-    <div class="modal__field">
       <label class="modal__label">식이형태</label>
       <input class="modal__input" id="modalDiet" type="text" placeholder="예: 다진식, 연식, 경관식">
-    </div>
-
-    <div class="modal__field">
-      <label class="modal__label">식사량</label>
-      <input class="modal__input" id="modalAmount" type="text" placeholder="예: 소, 중, 대">
     </div>
 
     <div class="modal__field">
@@ -608,20 +599,8 @@ body {
       <input class="modal__input" id="modalNotes" type="text" placeholder="예: 김치많이, 국 건더기 제거">
     </div>
 
-    <div class="modal__field">
-      <label class="modal__label">식사보조</label>
-      <div class="modal__toggle" id="assistToggle">
-        <div class="modal__toggle-switch" id="assistSwitch"></div>
-        <span class="modal__toggle-text" id="assistText">필요 없음</span>
-      </div>
-    </div>
-
-    <div class="modal__field">
-      <label class="modal__label">기타</label>
-      <input class="modal__input" id="modalEtc" type="text" placeholder="예: 된밥, 면많이">
-    </div>
-
     <div class="modal__actions">
+      <button class="modal__btn modal__btn--delete" id="modalDelete">삭제</button>
       <button class="modal__btn modal__btn--cancel" id="modalCancel">취소</button>
       <button class="modal__btn modal__btn--save" id="modalSave">저장</button>
     </div>
@@ -815,21 +794,13 @@ function render() {
 const modalBackdrop = document.getElementById('modalBackdrop');
 const modalName = document.getElementById('modalName');
 const modalDiet = document.getElementById('modalDiet');
-const modalAmount = document.getElementById('modalAmount');
 const modalNotes = document.getElementById('modalNotes');
-const modalEtc = document.getElementById('modalEtc');
 const apronSwitch = document.getElementById('apronSwitch');
 const apronText = document.getElementById('apronText');
-const firstSwitch = document.getElementById('firstSwitch');
-const firstText = document.getElementById('firstText');
-const assistSwitch = document.getElementById('assistSwitch');
-const assistText = document.getElementById('assistText');
 const modalSave = document.getElementById('modalSave');
 
 let editingResident = null;
 let apronOn = false;
-let firstOn = false;
-let assistOn = false;
 
 function openModal(name) {
   const resident = cachedData.find(r => r[CONFIG.COL.NAME] === name);
@@ -838,18 +809,10 @@ function openModal(name) {
 
   modalName.textContent = name;
   modalDiet.value = resident[CONFIG.COL.DIET] || '';
-  modalAmount.value = resident[CONFIG.COL.AMOUNT] || '';
   modalNotes.value = resident[CONFIG.COL.SIDE_NOTES] || '';
-  modalEtc.value = resident[CONFIG.COL.ETC] || '';
 
   apronOn = isTruthy(resident[CONFIG.COL.APRON]);
   updateToggle(apronSwitch, apronText, apronOn, '필요', '필요 없음');
-
-  firstOn = isTruthy(resident[CONFIG.COL.FIRST]);
-  updateToggle(firstSwitch, firstText, firstOn, '예', '아니오');
-
-  assistOn = isTruthy(resident[CONFIG.COL.ASSIST]);
-  updateToggle(assistSwitch, assistText, assistOn, '필요', '필요 없음');
 
   modalSave.disabled = false;
   modalBackdrop.classList.remove('hidden');
@@ -872,18 +835,22 @@ document.getElementById('apronToggle').addEventListener('click', () => {
   updateToggle(apronSwitch, apronText, apronOn, '필요', '필요 없음');
 });
 
-document.getElementById('firstToggle').addEventListener('click', () => {
-  firstOn = !firstOn;
-  updateToggle(firstSwitch, firstText, firstOn, '예', '아니오');
-});
-
-document.getElementById('assistToggle').addEventListener('click', () => {
-  assistOn = !assistOn;
-  updateToggle(assistSwitch, assistText, assistOn, '필요', '필요 없음');
-});
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalCancel').addEventListener('click', closeModal);
+
+document.getElementById('modalDelete').addEventListener('click', async () => {
+  const name = document.getElementById('modalName').textContent;
+  if (!confirm(`"${name}" 을(를) 삭제하시겠습니까?`)) return;
+  // 웹에서 즉시 제거
+  cachedData = cachedData.filter(r => r[CONFIG.COL.NAME] !== name);
+  render();
+  closeModal();
+  showToast(`${name} 삭제 완료`);
+  // 시트에서 삭제 (백그라운드)
+  const params = new URLSearchParams({ action: 'delete', [CONFIG.COL.NAME]: name }).toString();
+  fetch(CONFIG.APPS_SCRIPT_URL + '?' + params, { mode: 'no-cors' }).catch(() => {});
+});
 modalBackdrop.addEventListener('click', (e) => {
   if (e.target === modalBackdrop) closeModal();
 });
@@ -897,12 +864,8 @@ modalSave.addEventListener('click', async () => {
   const updatedData = {
     [CONFIG.COL.NAME]: editingResident[CONFIG.COL.NAME],
     [CONFIG.COL.APRON]: apronOn ? 'Y' : '',
-    [CONFIG.COL.FIRST]: firstOn ? 'Y' : '',
-    [CONFIG.COL.AMOUNT]: modalAmount.value.trim(),
     [CONFIG.COL.DIET]: modalDiet.value.trim(),
     [CONFIG.COL.SIDE_NOTES]: modalNotes.value.trim(),
-    [CONFIG.COL.ASSIST]: assistOn ? 'Y' : '',
-    [CONFIG.COL.ETC]: modalEtc.value.trim(),
   };
 
   // 로컬 캐시 즉시 업데이트
@@ -978,6 +941,20 @@ function showSetupGuide() {
     </div>`;
 }
 
+async function fetchFromAppsScript() {
+  const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=read');
+  const data = await res.json();
+  if (!Array.isArray(data) || data.length === 0) throw new Error('empty');
+  return data;
+}
+
+async function fetchFromCSV() {
+  const res = await fetch(CONFIG.SHEET_CSV_URL + '&t=' + Date.now(), { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return parseCSV(text);
+}
+
 async function fetchData(showLoadingFlag = true) {
   if (showLoadingFlag && cachedData.length === 0) {
     loading.classList.remove('hidden');
@@ -986,15 +963,16 @@ async function fetchData(showLoadingFlag = true) {
   refreshBtn.classList.add('spinning');
 
   try {
-    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=read');
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      cachedData = data;
-      updateTimestamp();
-      render();
-    } else {
-      throw new Error('empty');
+    // Apps Script 우선, 실패 시 CSV 폴백
+    let data;
+    try {
+      data = await fetchFromAppsScript();
+    } catch (e) {
+      data = await fetchFromCSV();
     }
+    cachedData = data;
+    updateTimestamp();
+    render();
   } catch (e) {
     if (cachedData.length > 0) {
       showToast('데이터 갱신 실패 — 마지막 데이터를 표시합니다');
