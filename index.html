@@ -515,8 +515,8 @@ body {
 </header>
 
 <nav class="tab-bar" role="tablist">
-  <button class="tab-bar__btn active" role="tab" data-tab="diet" aria-selected="true">식이형태</button>
-  <button class="tab-bar__btn" role="tab" data-tab="apron" aria-selected="false">앞치마필요</button>
+  <button class="tab-bar__btn active" role="tab" data-tab="apron" aria-selected="true">앞치마필요</button>
+  <button class="tab-bar__btn" role="tab" data-tab="diet" aria-selected="false">식이형태</button>
   <button class="tab-bar__btn" role="tab" data-tab="notes" aria-selected="false">반찬특이사항</button>
 </nav>
 
@@ -789,7 +789,7 @@ function renderNotesTab(data) {
 // ============================================================
 // 탭 컨트롤러
 // ============================================================
-let activeTab = 'diet';
+let activeTab = 'apron';
 const renderers = { diet: renderDietTab, apron: renderApronTab, notes: renderNotesTab };
 
 function switchTab(tab) {
