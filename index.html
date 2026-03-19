@@ -608,6 +608,15 @@ body {
 </div>
 
 <script>
+const APRON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="#7b93c4" style="vertical-align:middle">
+  <circle cx="12" cy="3.5" r="2" fill="none" stroke="#7b93c4" stroke-width="1.5"/>
+  <path d="M9 5.5 L15 5.5 L15 10 L9 10 Z"/>
+  <path d="M3 10 L9 10 L9 12 L3 12 Z" rx="1"/>
+  <path d="M15 10 L21 10 L21 12 L15 12 Z" rx="1"/>
+  <path d="M5 12 L19 12 L20.5 22 L3.5 22 Z"/>
+  <rect x="10" y="16.5" width="4" height="3.5" rx="0.8" fill="none" stroke="white" stroke-width="1"/>
+</svg>`;
+
 // ============================================================
 // ★ 설정 ★
 // SHEET_CSV_URL: 읽기용 (웹에 게시 → CSV)
@@ -726,8 +735,7 @@ function renderDietTab(data) {
     html += '<div class="card-grid">';
     for (const r of residents) {
       const name = r[CONFIG.COL.NAME];
-      const apron = isTruthy(r[CONFIG.COL.APRON]) ? '<span class="name-card__apron">🧥</span>' : '';
-      html += `<div class="name-card" style="border-left-color:${color.badge}" ${cardClick(name)}>${escapeHTML(name)}${apron}</div>`;
+      html += `<div class="name-card" style="border-left-color:${color.badge}" ${cardClick(name)}>${escapeHTML(name)}</div>`;
     }
     html += '</div></div>';
   }
@@ -737,13 +745,13 @@ function renderDietTab(data) {
 function renderApronTab(data) {
   const list = getApronResidents(data);
   if (list.length === 0) {
-    return '<div class="empty-state"><div class="empty-state__icon">🧥</div><div class="empty-state__text">앞치마가 필요한 분이 없습니다</div></div>';
+    return `<div class="empty-state"><div class="empty-state__icon">${APRON_SVG}</div><div class="empty-state__text">앞치마가 필요한 분이 없습니다</div></div>`;
   }
   let html = `<div style="padding:8px 16px;font-weight:700;font-size:1.1rem;color:#666;margin-bottom:4px">총 ${list.length}명</div>`;
   html += '<div class="card-grid">';
   for (const r of list) {
     const name = r[CONFIG.COL.NAME];
-    html += `<div class="apron-card" ${cardClick(name)}>🧥 ${escapeHTML(name)}</div>`;
+    html += `<div class="apron-card" ${cardClick(name)}>${APRON_SVG} ${escapeHTML(name)}</div>`;
   }
   html += '</div>';
   return html;
