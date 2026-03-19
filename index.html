@@ -986,12 +986,15 @@ async function fetchData(showLoadingFlag = true) {
   refreshBtn.classList.add('spinning');
 
   try {
-    const res = await fetch(CONFIG.SHEET_CSV_URL + '&t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    cachedData = parseCSV(text);
-    updateTimestamp();
-    render();
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=read');
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      cachedData = data;
+      updateTimestamp();
+      render();
+    } else {
+      throw new Error('empty');
+    }
   } catch (e) {
     if (cachedData.length > 0) {
       showToast('데이터 갱신 실패 — 마지막 데이터를 표시합니다');
